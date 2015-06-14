@@ -36,6 +36,9 @@ import json
 import re
 import signal
 from distutils import spawn
+import curses
+from curses import wrapper
+from curses import panel
 
 
 def module_ids(shutit, rev=False):
@@ -832,7 +835,7 @@ def setup_shutit_path(cfg):
 		sys.exit()
 
 
-def main():
+def main(stdscr):
 	"""Main ShutIt function.
 
 	Handles the configured actions:
@@ -842,6 +845,7 @@ def main():
 		- list_configs - output computed configuration
 		- depgraph     - output digraph of module dependencies
 	"""
+	stdscr.refresh()
 	if sys.version_info.major == 2:
 		if sys.version_info.minor < 7:
 			shutit_global.shutit.fail('Python version must be 2.7+')
@@ -1005,4 +1009,5 @@ def do_phone_home(msg=None,question='Error seen - would you like to inform the m
 signal.signal(signal.SIGINT, shutit_util.ctrl_c_signal_handler)
 
 if __name__ == '__main__':
-	main()
+	
+	wrapper(main)

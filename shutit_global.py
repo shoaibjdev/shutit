@@ -174,9 +174,9 @@ class ShutIt(object):
 			# This is an "OK" failure, ie we don't need to throw an exception.
 			# However, it's still a failure, so return 1
 			print msg
-			print 'about to exit'
+			print '*'*80 + '\nExpected error, exiting' + '*'*80
 			sys.exit(1)
-			print 'never'
+			print 'We should never get here'
 
 
 	def log(self, msg, code=None, pause=0, prefix=True, force_stdout=False, add_final_message=False):
@@ -1246,8 +1246,10 @@ c'''
 		ftext = ftext.replace('\r\n','\n')
 		# If we are not forcing and the text is already in the file, then don't insert.
 		# TODO: look only after/before the pattern matches
+		# http://stackoverflow.com/questions/4664850/find-all-occurrences-of-a-substring-in-python
 		if not force and not delete and ftext.find(text) != -1:
 			return None
+		# If deleting, and not already there, return None as nothing to do.
 		if delete and ftext.find(text) == -1:
 			return None
 		if delete:
@@ -2346,7 +2348,8 @@ c'''
 		child = child or self.get_default_child()
 		expect = expect or self.get_default_expect()
 		self._handle_note(note)
-		self.install('passwd')
+		if not self.command_available('passwd'):
+			self.install('passwd')
 		cfg = self.cfg
 		if cfg['environment'][cfg['build']['current_environment_id']]['install_type'] == 'apt':
 			self.send('passwd ' + user,
