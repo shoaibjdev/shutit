@@ -2655,6 +2655,30 @@ END_''' + random_id)
 			                          '\nPushed repository: ' + repository)
 
 
+	def get_input(self, msg, default='', valid=[], boolean=False):
+		"""Gets input from the user, and returns the answer
+
+		@param msg:       message to send to user
+		@param default:   default value if nothing entered
+		@param valid:     valid input values (default == empty list == anything allowed)
+		@param boolean:   whether return value should be boolean
+		"""
+		if boolean and valid == []:
+			valid = ('yes','y','Y','1','true','no','n','N','0','false')
+		answer = shutit_util.util_raw_input(prompt=shutit_util.colour('32',msg)
+		while answer not in valid or valid == []:
+			print 'Answer must be one ok: ' + valid
+			answer = shutit_util.util_raw_input(prompt=shutit_util.colour('32',msg)
+		if boolean and answer in ('yes','y','Y','1','true'):
+			return True
+		if boolean and answer in ('no','n','N','0','false'):
+			return False
+		if answer == '':
+			return default
+		else:
+			return answer
+
+
 	def get_config(self,
 	               module_id,
 	               option,
