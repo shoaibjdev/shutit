@@ -1986,14 +1986,15 @@ END_''' + random_id)
 			# If this is a src build, we assume it's already installed.
 			return True
 		opts = ''
-		if self.whoami() != 'root':
-			cmd = 'sudo'
-			pw = shutit.get_input('Please input your sudo password in case it is needed.',ispass=True)
+		whoiam = self.whoami()
+		if whoiam != 'root':
+			cmd = 'sudo '
+			pw = self.get_env_pass(whoiam)
 		else:
 			cmd = ''
 			pw = ''
 		if install_type == 'apt':
-			cmd = cmd + ' apt-get install'
+			cmd = cmd + 'apt-get install'
 			if 'apt' in options:
 				opts = options['apt']
 			else:
@@ -2005,7 +2006,7 @@ END_''' + random_id)
 				if reinstall:
 					opts += ' --reinstall'
 		elif install_type == 'yum':
-			cmd = cmd + ' yum install'
+			cmd = cmd + 'yum install'
 			if 'yum' in options:
 				opts = options['yum']
 			else:
@@ -2013,19 +2014,19 @@ END_''' + random_id)
 			if reinstall:
 				opts += ' reinstall'
 		elif install_type == 'apk':
-			cmd = cmd + ' apk add'
+			cmd = cmd + 'apk add'
 			if 'apk' in options:
 				opts = options['apk']
 		elif install_type == 'emerge':
-			cmd = cmd + ' emerge'
+			cmd = cmd + 'emerge'
 			if 'emerge' in options:
 				opts = options['emerge']
 		elif install_type == 'docker':
-			cmd = cmd + ' docker pull'
+			cmd = cmd + 'docker pull'
 			if 'docker' in options:
 				opts = options['docker']
 		elif install_type == 'brew':
-			cmd = cmd + ' brew install'
+			cmd = cmd + 'brew install'
 			if 'brew' in options:
 				opts = options['brew']
 		else:
@@ -2044,7 +2045,7 @@ END_''' + random_id)
 						expect=['Unable to fetch some archives',expect],
 						timeout=timeout, check_exit=False, child=child)
 				else:
-					res = self.multisend('%s %s %s' % (cmd, opts, package),
+					res = self.send('%s %s %s' % (cmd, opts, package),
 						expect=['Unable to fetch some archives',expect],
 						timeout=timeout, check_exit=check_exit, child=child)
 				if res == 1:
@@ -2057,7 +2058,6 @@ END_''' + random_id)
 			# package not required
 			pass
 		return True
-
 
 	def remove(self,
 	           package,
@@ -2087,29 +2087,35 @@ END_''' + random_id)
 		self._handle_note(note)
 		if options is None: options = {}
 		install_type = cfg['environment'][cfg['build']['current_environment_id']]['install_type']
+		if whoiam != 'root':
+			cmd = 'sudo '
+			pw = self.get_env_pass(whoiam)
+		else:
+			cmd = ''
+			pw = ''
 		if install_type == 'src':
 			# If this is a src build, we assume it's already installed.
 			return True
 		if install_type == 'apt':
-			cmd = 'apt-get purge'
+			cmd = cmd + 'apt-get purge'
 			opts = options['apt'] if 'apt' in options else '-qq -y'
 		elif install_type == 'yum':
-			cmd = 'yum erase'
+			cmd = cmd + 'yum erase'
 			opts = options['yum'] if 'yum' in options else '-y'
 		elif install_type == 'apk':
-			cmd = 'apk del'
+			cmd = cmd + 'apk del'
 			if 'apk' in options:
 				opts = options['apk']
 		elif install_type == 'emerge':
-			cmd = 'emerge -cav'
+			cmd = cmd + 'emerge -cav'
 			if 'emerge' in options:
 				opts = options['emerge']
 		elif install_type == 'docker':
-			cmd = 'docker rmi'
+			cmd = cmd + 'docker rmi'
 			if 'docker' in options:
 				opts = options['docker']
 		elif install_type == 'brew':
-			cmd = 'brew uninstall'
+			cmd = cmd + 'brew uninstall'
 			if 'brew' in options:
 				opts = options['brew']
 		else:
@@ -2117,9 +2123,25 @@ END_''' + random_id)
 			return False
 		# Get mapped package.
 		package = package_map.map_package(package,
-			cfg['environment'][cfg['build']['current_environment_id']]['install_type'])
-		self.send('%s %s %s' % (cmd, opts, package), expect, timeout=timeout, exit_values=['0','100'])
+		          cfg['environment'][cfg['build']['current_environment_id']]['install_type'])
+		if pw != '':
+			self.multisend('%s %s %s' % (cmd, opts, package), {'assword:':pw}, child=child, expect=expect, timeout=timeout, exit_values=['0','100'])
+		else:
+			self.send('%s %s %s' % (cmd, opts, package), child=child, expect=expect, timeout=timeout, exit_values=['0','100'])
 		return True
+
+
+	def get_env_pass(self,user):
+		"""Gets a password from the user if one is not already recorded.
+
+		@param user:    username we are getting password for
+		"""
+		cfg = self.cfg
+		try:
+			cfg[self.get_current_environment][user]['password']
+		except:
+			cfg[self.get_current_environment][user]['password'] = shutit.get_input('Please input your sudo password in case it is needed (for user: ' + user + ')\nJust hit return if you do not want to submit a password.\n',ispass=True)
+		return cfg[self.get_current_environment][user]['password']
 
 
 	def whoami(self, child=None, expect=None, note=None):
