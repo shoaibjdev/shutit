@@ -1856,8 +1856,12 @@ END_''' + random_id)
 		"""
 		cfg = self.cfg
 		lines = string.split('\r\n')
+		#print lines
 		for line in lines:
+			#print line
+			#print regexp
 			match = re.match(regexp, line)
+			#print match
 			if match != None:
 				if len(match.groups()) > 0:
 					return match.group(1)
@@ -1982,8 +1986,14 @@ END_''' + random_id)
 			# If this is a src build, we assume it's already installed.
 			return True
 		opts = ''
+		if self.whoami() != 'root':
+			cmd = 'sudo'
+			pw = shutit.get_input('Please input your sudo password in case it is needed.',ispass=True)
+		else:
+			cmd = ''
+			pw = ''
 		if install_type == 'apt':
-			cmd = 'apt-get install'
+			cmd = cmd + ' apt-get install'
 			if 'apt' in options:
 				opts = options['apt']
 			else:
@@ -1995,7 +2005,7 @@ END_''' + random_id)
 				if reinstall:
 					opts += ' --reinstall'
 		elif install_type == 'yum':
-			cmd = 'yum install'
+			cmd = cmd + ' yum install'
 			if 'yum' in options:
 				opts = options['yum']
 			else:
@@ -2003,19 +2013,19 @@ END_''' + random_id)
 			if reinstall:
 				opts += ' reinstall'
 		elif install_type == 'apk':
-			cmd = 'apk add'
+			cmd = cmd + ' apk add'
 			if 'apk' in options:
 				opts = options['apk']
 		elif install_type == 'emerge':
-			cmd = 'emerge'
+			cmd = cmd + ' emerge'
 			if 'emerge' in options:
 				opts = options['emerge']
 		elif install_type == 'docker':
-			cmd = 'docker pull'
+			cmd = cmd + ' docker pull'
 			if 'docker' in options:
 				opts = options['docker']
 		elif install_type == 'brew':
-			cmd = 'brew install'
+			cmd = cmd + ' brew install'
 			if 'brew' in options:
 				opts = options['brew']
 		else:
@@ -2029,9 +2039,14 @@ END_''' + random_id)
 		if package != '':
 			fails = 0
 			while True:
-				res = self.send('%s %s %s' % (cmd, opts, package),
-					expect=['Unable to fetch some archives',expect],
-					timeout=timeout, check_exit=check_exit)
+				if pw != '':
+					res = self.multisend('%s %s %s' % (cmd, opts, package), {'assword':pw},
+						expect=['Unable to fetch some archives',expect],
+						timeout=timeout, check_exit=False, child=child)
+				else:
+					res = self.multisend('%s %s %s' % (cmd, opts, package),
+						expect=['Unable to fetch some archives',expect],
+						timeout=timeout, check_exit=check_exit, child=child)
 				if res == 1:
 					break
 				else:
@@ -2194,8 +2209,8 @@ END_''' + random_id)
 			self.log('WARNING! user is bash - if you see problems below, did you mean: login(command="' + user + '")?',force_stdout=True)
 			print '\n' + 80 * '='
 		self.multisend(send,{'ontinue connecting':'yes','assword':password,'login:':password},expect=general_expect,check_exit=False,timeout=timeout,fail_on_empty_before=False)
-		if not self._check_exit(send,expect=general_expect):
-			self.pause_point('Login failed?')
+		#if not self._check_exit(send,expect=general_expect):
+		#	self.pause_point('Login failed?')
 		if prompt_prefix != None:
 			self.setup_prompt(r_id,child=child,prefix=prompt_prefix)
 		else:
