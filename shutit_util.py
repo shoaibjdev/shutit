@@ -1181,6 +1181,7 @@ def create_skeleton(shutit):
 	os.mkdir(os.path.join(skel_path, 'bin'))
 	if skel_delivery != 'bash':
 		os.mkdir(os.path.join(skel_path, 'context'))
+		os.mkdir(os.path.join(skel_path, 'haproxy'))
 
 	templatemodule_path   = os.path.join(skel_path, skel_module_name + '.py')
 	readme_path           = os.path.join(skel_path, 'README.md')
@@ -1192,6 +1193,9 @@ def create_skeleton(shutit):
 	buildcnf_path         = os.path.join(skel_path, 'configs', 'build.cnf')
 	pushcnf_path          = os.path.join(skel_path, 'configs', 'push.cnf')
 	builddockerfile_path  = os.path.join(skel_path, 'Dockerfile')
+	if skel_delivery != 'bash':
+		haproxycnf_path          = os.path.join(skel_path, 'haproxy', 'haproxy.cfg')
+		haproxydockerfile_path   = os.path.join(skel_path, 'haproxy', 'Dockerfile')
 
 	if skel_dockerfile:
 		if os.path.basename(skel_dockerfile) != 'Dockerfile':
@@ -1522,7 +1526,14 @@ def module():
 	runsh = textwrap.dedent('''\
 		#!/bin/bash
 		# Example for running
-		docker run -ti''' + ports_arg + volumes_arg + env_arg + ' ' + skel_module_name + ' ' + cfg['dockerfile']['entrypoint'] + ' ' + cfg['dockerfile']['cmd'] + '\n')
+		DOCKER=${DOCKER:-docker}
+		if [[ $1 != '' ]]
+		then
+			NAME=$1
+		else
+			NAME=%s
+		fi
+		${DOCKER} run -d --name ${NAME}''' % (skel_module_name,) + ports_arg + volumes_arg + env_arg + ' ' + skel_module_name + ' ' + cfg['dockerfile']['entrypoint'] + ' ' + cfg['dockerfile']['cmd'] + '\n')
 	buildpushsh = textwrap.dedent('''\
 		export SHUTIT_OPTIONS="$SHUTIT_OPTIONS --config configs/push.cnf -s repository push yes"
 		./build.sh "$@"
@@ -1552,11 +1563,27 @@ def module():
 		''')
 	phoenixsh = textwrap.dedent('''\
 #!/bin/bash
-./build.sh
 DOCKER=${DOCKER:-docker}
-# Kill the name of the container.
-$DOCKER rm -f %s
-./run.sh %s/%s''' % (skel_module_name,skel_module_name,skel_module_name))
+CONTAINER_BASE_NAME=%s
+INSTANCE_A=$(docker ps --filter=name=${CONTAINER_BASE_NAME}_a -q)
+INSTANCE_B=$(docker ps --filter=name=${CONTAINER_BASE_NAME}_b -q)
+if [[ $INSTANCE_A != '' ]] && [[ $INSTANCE_B != '' ]]
+then
+	docker rm -f ${CONTAINER_BASE_NAME}_b
+fi
+if [[ $INSTANCE_A != '' ]]
+then
+	./build.sh -s repository tag yes -s repository name ${CONTAINER_BASE_NAME}_b
+	./run.sh ${CONTAINER_BASE_NAME}_b
+	$DOCKER rm -f ${CONTAINER_BASE_NAME}_a
+else
+	./build.sh -s repository tag yes -s repository name ${CONTAINER_BASE_NAME}_a
+	./run.sh ${CONTAINER_BASE_NAME}_a
+	if [[ $INSTANCE_B != '' ]]
+	then
+		$DOCKER rm -f ${CONTAINER_BASE_NAME}_b
+	fi
+fi''' % (skel_module_name))
 	pushcnf = textwrap.dedent('''\
 		###############################################################################
 		# PLEASE NOTE: This file should be changed only by the maintainer.
@@ -1587,6 +1614,18 @@ $DOCKER rm -f %s
 		#suffix_date:no
 		#suffix_format:%s
 		''')
+	haproxycnf = textwrap.dedent('''\
+		global
+		    maxconn 256
+		defaults
+		    mode tcp
+		listen
+		    bind *:8000
+		    server server1 127.0.0.1:8100 maxconn 32
+		    server server2 127.0.0.1:8101 maxconn 32''')
+	haproxydockerfile = textwrap.dedent('''\
+		FROM haproxy:1.5
+		COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg''')
 	builddockerfile = textwrap.dedent('''\
        FROM ''' + cfg['dockerfile']['base_image'] + '''
 
@@ -1622,6 +1661,8 @@ $DOCKER rm -f %s
 		os.chmod(runsh_path, os.stat(runsh_path).st_mode | 0111) # chmod +x
 		open(phoenixsh_path, 'w').write(phoenixsh)
 		os.chmod(phoenixsh_path, os.stat(phoenixsh_path).st_mode | 0111) # chmod +x
+		open(haproxycnf_path, 'w').write(haproxycnf)
+		open(haproxydockerfile_path, 'w').write(haproxydockerfile)
 
 	if skel_script is not None:
 		print textwrap.dedent('''\

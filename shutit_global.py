@@ -2551,7 +2551,7 @@ END_''' + random_id)
 			install_type = cfg['build']['install_type_map'][key]
 			distro_version = ''
 			if install_type == 'apt' and cfg['build']['delivery'] == 'target':
-				self.send('apt-get update')
+				self.send('apt-get update -qq')
 				cfg['build']['do_update'] = False
 				if not self.command_available('lsb_release'):
 					self.send('apt-get install -y -qq lsb-release')
@@ -2630,7 +2630,7 @@ END_''' + random_id)
 			# may fail if it doesn't know the install type, so
 			# if we've determined that now
 			if install_type == 'apt' and cfg['build']['delivery'] == 'target':
-				self.send('apt-get update')
+				self.send('apt-get update -qq')
 				cfg['build']['do_update'] = False
 				if not self.command_available('lsb_release'):
 					self.send('apt-get install -y -qq lsb-release')
@@ -2685,7 +2685,7 @@ END_''' + random_id)
 			'^Release:[\s*](.*)$')
 		d = {}
 		if dist_string:
-			d['distro']         = dist_string.lower()
+			d['distro']         = dist_string.lower().strip()
 			d['distro_version'] = version_string
 			d['install_type'] = (
 				cfg['build']['install_type_map'][dist_string.lower()])
@@ -2714,11 +2714,6 @@ END_''' + random_id)
 			self.send(password, child=child, expect='Retype new',
 					  check_exit=False, echo=False)
 			self.send(password, child=child, expect=expect, echo=False)
-			#Considered harmful as it broke builds due to keyring error
-			#W: GPG error: http://ppa.launchpad.net precise Release: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY B70731143DD9F856
-			#W: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/precise/main/source/Sources  Hash Sum mismatch
-			# It seems that doing apt-utils before apt-get update is a problem
-			#self.install('apt-utils')
 		elif cfg['environment'][cfg['build']['current_environment_id']]['install_type'] == 'yum':
 			self.send('passwd ' + user, child=child, expect='ew password',
 					  check_exit=False)
