@@ -1527,10 +1527,12 @@ def module():
 		if [[ $1 != '' ]]
 		then
 			NAME=$1
+			PORT_ARG=$2
 		else
-			NAME=%s
+			NAME=%s_a
+			PORT_ARG=$1
 		fi
-		${DOCKER} run -d --name ${NAME}''' % (skel_module_name,) + ports_arg + volumes_arg + env_arg + ' ' + skel_module_name + ' ' + cfg['dockerfile']['entrypoint'] + ' ' + cfg['dockerfile']['cmd'] + '\n')
+		${DOCKER} run -d --name ${NAME}''' % (skel_module_name,) + ports_arg + volumes_arg + env_arg + ' ${PORT_ARG} ${NAME} ' + cfg['dockerfile']['entrypoint'] + ' ' + cfg['dockerfile']['cmd'] + '\n')
 	buildpushsh = textwrap.dedent('''\
 		export SHUTIT_OPTIONS="$SHUTIT_OPTIONS --config configs/push.cnf -s repository push yes"
 		./build.sh "$@"
@@ -1560,22 +1562,50 @@ def module():
 		''')
 	phoenixsh = textwrap.dedent('''\
 #!/bin/bash
+set -e
 DOCKER=${DOCKER:-docker}
 CONTAINER_BASE_NAME=%s
-INSTANCE_A=$(docker ps --filter=name=${CONTAINER_BASE_NAME}_a -q)
-INSTANCE_B=$(docker ps --filter=name=${CONTAINER_BASE_NAME}_b -q)
+# The port on which your haproxy is configured to receive requests
+HA_PROXY_PORT=${HA_PROXY_PORT:-8080}
+# The port on which your backend 'a' is configured to receive requests on the host
+HA_BACKEND_PORT_A=${HA_BACKEND_PORT_A:-8081}
+# The port on which your backend 'b' is configured to receive requests on the host
+HA_BACKEND_PORT_B=${HA_BACKEND_PORT_B:-8082}
+# The port on which the container receives requests
+CONTAINER_PORT=${CONTAINER_PORT:-80}
+
+# Set up haproxy.
+# Remove proxy if it's died. If it doesn't exist, rebuild it first.
+HAPROXY=$($DOCKER ps --filter=name=${CONTAINER_BASE_NAME}_haproxy -q)
+if [[ $HAPROXY = '' ]]
+then
+	HAPROXY=$($DOCKER ps --filter=name=${CONTAINER_BASE_NAME}_haproxy -q -a)
+	if [[ $HAPROXY != '' ]]
+	then
+		$DOCKER rm -f ${CONTAINER_BASE_NAME}_haproxy
+	fi
+	pushd ../haproxy
+	$DOCKER build -t ${CONTAINER_BASE_NAME}_haproxy .
+	$DOCKER run -d -p ${HA_PROXY_PORT}:80 --name ${CONTAINER_BASE_NAME}_haproxy ${CONTAINER_BASE_NAME}_haproxy
+	popd
+fi
+
+# Determine which instance is running, build a new one and then kill off the old one.
+INSTANCE_A=$($DOCKER ps --filter=name=${CONTAINER_BASE_NAME}_a -q -a)
+INSTANCE_B=$($DOCKER ps --filter=name=${CONTAINER_BASE_NAME}_b -q -a)
+# If both are running, kill 'b'
 if [[ $INSTANCE_A != '' ]] && [[ $INSTANCE_B != '' ]]
 then
-	docker rm -f ${CONTAINER_BASE_NAME}_b
+	$DOCKER rm -f ${CONTAINER_BASE_NAME}_b
 fi
 if [[ $INSTANCE_A != '' ]]
 then
 	./build.sh -s repository tag yes -s repository name ${CONTAINER_BASE_NAME}_b
-	./run.sh ${CONTAINER_BASE_NAME}_b
+	./run.sh ${CONTAINER_BASE_NAME}_b "-p ${HA_BACKEND_PORT_B}:${CONTAINER_PORT}"
 	$DOCKER rm -f ${CONTAINER_BASE_NAME}_a
 else
 	./build.sh -s repository tag yes -s repository name ${CONTAINER_BASE_NAME}_a
-	./run.sh ${CONTAINER_BASE_NAME}_a
+	./run.sh ${CONTAINER_BASE_NAME}_a "-p ${HA_BACKEND_PORT_A}:${CONTAINER_PORT}"
 	if [[ $INSTANCE_B != '' ]]
 	then
 		$DOCKER rm -f ${CONTAINER_BASE_NAME}_b
@@ -1616,8 +1646,12 @@ fi''' % (skel_module_name))
 		    maxconn 256
 		defaults
 		    mode tcp
-		listen
-		    bind *:8000
+		frontend front_door
+			bind *:80
+			default_backend nodes
+		backend nodes
+			timeout connect 2s
+			timeout server  10m
 		    server server1 127.0.0.1:8100 maxconn 32
 		    server server2 127.0.0.1:8101 maxconn 32''')
 	haproxydockerfile = textwrap.dedent('''\
