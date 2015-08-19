@@ -164,7 +164,7 @@ privileged:no
 lxc_conf:
 # Base image can be over-ridden by --image_tag defaults to this.
 base_image:ubuntu:14.04
-# Whether to perform tests. 
+# Whether to perform tests.
 dotest:yes
 # --net argument to docker, eg "bridge", "none", "container:<name|id>" or "host". Empty means use default (bridge).
 net:
@@ -757,7 +757,7 @@ def parse_args(shutit):
 			The module_id is a string that uniquely identifies the module.
 
 			The run_order is a float that defines the order in which the module should be
-			run relative to other modules. This guarantees a deterministic ordering of 
+			run relative to other modules. This guarantees a deterministic ordering of
 			the modules run.
 
 			See shutit_module.py for more detailed documentation on these.
@@ -912,7 +912,7 @@ def list_modules(shutit):
 		a = {}
 		for m in shutit.shutit_modules:
 			a.update({m.module_id:m.run_order})
-		# sort dict by run_order; see http://stackoverflow.com/questions/613183/sort-a-python-dictionary-by-value 
+		# sort dict by run_order; see http://stackoverflow.com/questions/613183/sort-a-python-dictionary-by-value
 		b = sorted(a.items(), key=operator.itemgetter(1))
 		count = 0
 		# now b is a list of tuples (module_id, run_order)
@@ -968,7 +968,7 @@ def print_config(cfg, hide_password=True, history=False):
 				keys2.sort()
 			for k1 in keys2:
 					line = ''
-					line += k1 + ':' 
+					line += k1 + ':'
 					# If we want to hide passwords, we do so using a sha512
 					# done an aritrary number of times (27).
 					if hide_password and (k1 == 'password' or k1 == 'passphrase'):
@@ -990,7 +990,7 @@ def print_config(cfg, hide_password=True, history=False):
 							# Assume this is because it was never set by a config parser.
 							line += (30-len(line)) * ' ' + ' # ' + "defaults in code"
 					s += line + '\n'
-	return s 
+	return s
 
 def set_pexpect_child(key, child):
 	"""Set a pexpect child in the global dictionary by key.
@@ -1265,8 +1265,8 @@ def create_skeleton(shutit):
 				# Set in the build
 				cfg['dockerfile']['env'].append(item[1])
 			elif docker_command == "RUN":
-				# Only handle simple commands for now and ignore the fact that Dockerfiles run 
-				# with /bin/sh -c rather than bash. 
+				# Only handle simple commands for now and ignore the fact that Dockerfiles run
+				# with /bin/sh -c rather than bash.
 				try:
 					cfg['dockerfile']['script'].append((docker_command, ' '.join(json.loads(item[1]))))
 				except Exception:
@@ -1375,8 +1375,8 @@ class template(ShutItModule):
         #                                      by ShutIt with shell prompts.
 		# shutit.multisend(send,send_dict)   - Send a command, dict contains {expect1:response1,expect2:response2,...}
 		# shutit.send_and_get_output(send)   - Returns the output of the sent command
-        # shutit.send_and_match_output(send, matches) 
-		#                                    - Returns True if any lines in output match any of 
+        # shutit.send_and_match_output(send, matches)
+		#                                    - Returns True if any lines in output match any of
 		#                                      the regexp strings in the matches list
 		# shutit.run_script(script)          - Run the passed-in string as a script
 		# shutit.install(package)            - Install a package
@@ -1386,7 +1386,7 @@ class template(ShutItModule):
         #                                      Use this if your env (or more specifically, prompt) changes at all,
         #                                      eg reboot, bash, ssh
 		# shutit.logout(command='exit')      - Clean up from a login.
-        # 
+        #
         # COMMAND HELPER FUNCTIONS
 		# shutit.add_to_bashrc(line)         - Add a line to bashrc
 		# shutit.get_url(fname, locations)   - Get a file via url from locations specified in a list
@@ -1406,13 +1406,13 @@ class template(ShutItModule):
 		# shutit.send_host_dir(path, hostfilepath)
         #                                    - Send directory and contents to path on the target
 		# shutit.insert_text(text, fname, pattern)
-        #                                    - Insert text into file fname after the first occurrence of 
+        #                                    - Insert text into file fname after the first occurrence of
         #                                      regexp pattern.
 		# shutit.delete_text(text, fname, pattern)
-        #                                    - Delete text from file fname after the first occurrence of 
+        #                                    - Delete text from file fname after the first occurrence of
         #                                      regexp pattern.
 		# shutit.replace_text(text, fname, pattern)
-        #                                    - Replace text from file fname after the first occurrence of 
+        #                                    - Replace text from file fname after the first occurrence of
         #                                      regexp pattern.
         # ENVIRONMENT QUERYING
 		# shutit.host_file_exists(filename, directory=False)
@@ -1442,7 +1442,7 @@ class template(ShutItModule):
 	def get_config(self, shutit):
 		# CONFIGURATION
 		# shutit.get_config(module_id,option,default=None,boolean=False)
-		#                                    - Get configuration value, boolean indicates whether the item is 
+		#                                    - Get configuration value, boolean indicates whether the item is
 		#                                      a boolean type, eg get the config with:
 		# shutit.get_config(self.module_id, 'myconfig', default='a value')
 		#                                      and reference in your code with:
@@ -1457,7 +1457,7 @@ def module():
 				description='',
 				delivery_methods=[('""" + skel_delivery + """')],
 				maintainer='""" + cfg['dockerfile']['maintainer'] + """',
-				depends=['%s""" % (skel_depends) + """'] 
+				depends=['%s""" % (skel_depends) + """']
 		)
 """
 		# Return program to main shutit_dir
@@ -1566,6 +1566,28 @@ set -e
 DOCKER=${DOCKER:-docker}
 CONTAINER_BASE_NAME=${CONTAINER_BASE_NAME:-%s}
 # haproxy image suffix
+#                             Sent on to:
+#                             HA_BACKEND_PORT_A
+#                                   +
+#                                   |
+#            +------------------+   |    +----------------+
+#            |                  |   |    |  Container A   |
+#            |                  +---v---->  Open on port: |
+#            |    HAProxy       |        |  CONTAINER_PORT|
+#            |    Container     |        |                |
+#            |                  |        +----------------+
+#Request+---->received          |
+#            |on port:          |        +----------------+
+#            |HA_PROXY_PORT     |        |  Container B   |
+#            |                  +---+---->  Open on port: |
+#            |                  |   ^    |  CONTAINER_PORT|
+#            |                  |   |    |                |
+#            +------------------+   |    +----------------+
+#                                   |
+#                                   +
+#                              Sent on to:
+#                              HA_BACKEND_PORT_B
+#
 HA_PROXY_CONTAINER_SUFFIX=${HA_PROXY_CONTAINER_SUFFIX:-haproxy}
 # The port on which your haproxy image is configured to receive requests from inside
 HA_PROXY_PORT=${HA_PROXY_PORT:-8080}
@@ -1573,7 +1595,7 @@ HA_PROXY_PORT=${HA_PROXY_PORT:-8080}
 HA_BACKEND_PORT_A=${HA_BACKEND_PORT_A:-8081}
 # The port on which your backend 'b' is configured to receive requests on the host
 HA_BACKEND_PORT_B=${HA_BACKEND_PORT_B:-8082}
-# The port on which the container receives requests
+# The port on which your service container receives requests
 CONTAINER_PORT=${CONTAINER_PORT:-80}
 
 # Set up haproxy.
@@ -1674,7 +1696,7 @@ fi''' % (skel_module_name))
        WORKDIR /opt/yourshutitproject
        RUN /opt/shutit/shutit build --delivery dockerfile
 
-       CMD ["/bin/bash"] 
+       CMD ["/bin/bash"]
 		''')
 
 	open(templatemodule_path, 'w').write(templatemodule)
