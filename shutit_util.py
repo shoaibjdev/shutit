@@ -1652,11 +1652,12 @@ fi''' % (skel_module_name))
 		frontend front_door
 			bind *:HA_PROXY_PORT
 			default_backend nodes
+			timeout client 10m
 		backend nodes
 			timeout connect 2s
 			timeout server  10m
-			server server1 127.0.0.1:HA_BACKEND_PORT_A maxconn 32
-			server server2 127.0.0.1:HA_BACKEND_PORT_B maxconn 32''')
+			server server1 127.0.0.1:HA_BACKEND_PORT_A maxconn 32 check
+			server server2 127.0.0.1:HA_BACKEND_PORT_B maxconn 32 check''')
 	haproxydockerfile = textwrap.dedent('''\
 		FROM haproxy:1.5
 		COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg''')
