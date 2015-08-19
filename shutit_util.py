@@ -1568,9 +1568,7 @@ CONTAINER_BASE_NAME=${CONTAINER_BASE_NAME:-%s}
 # haproxy image suffix
 HA_PROXY_CONTAINER_SUFFIX=${HA_PROXY_CONTAINER_SUFFIX:-haproxy}
 # The port on which your haproxy image is configured to receive requests from inside
-HA_INTERNAL_PROXY_PORT=${HA_INTERNAL_PROXY_PORT:-80}
-# The port on which your haproxy image is configured to receive requests from outside
-HA_EXTERNAL_PROXY_PORT=${HA_EXTERNAL_PROXY_PORT:-8080}
+HA_PROXY_PORT=${HA_PROXY_PORT:-8080}
 # The port on which your backend 'a' is configured to receive requests on the host
 HA_BACKEND_PORT_A=${HA_BACKEND_PORT_A:-8081}
 # The port on which your backend 'b' is configured to receive requests on the host
@@ -1589,8 +1587,9 @@ then
 		$DOCKER rm -f ${CONTAINER_BASE_NAME}_${HA_PROXY_CONTAINER_SUFFIX}
 	fi
 	pushd ../haproxy
+	sed "s/HA_PROXY_PORT/${HA_PROXY_PORT}/g;s/HA_BACKEND_PORT_A/${HA_BACKEND_PORT_A}/g;s/HA_BACKEND_PORT_B/${HA_BACKEND_PORT_B}/g" haproxy.cfg.template > haproxy.cfg
 	$DOCKER build -t ${CONTAINER_BASE_NAME}_${HA_PROXY_CONTAINER_SUFFIX} .
-	$DOCKER run -d -p ${HA_EXTERNAL_PROXY_PORT}:${HA_INTERNAL_PROXY_PORT} --name ${CONTAINER_BASE_NAME}_${HA_PROXY_CONTAINER_SUFFIX} ${CONTAINER_BASE_NAME}_${HA_PROXY_CONTAINER_SUFFIX}
+	$DOCKER run -d --net=host --name ${CONTAINER_BASE_NAME}_${HA_PROXY_CONTAINER_SUFFIX} ${CONTAINER_BASE_NAME}_${HA_PROXY_CONTAINER_SUFFIX}
 	popd
 fi
 
@@ -1651,13 +1650,13 @@ fi''' % (skel_module_name))
 		defaults
 		    mode tcp
 		frontend front_door
-			bind *:80
+			bind *:HA_PROXY_PORT
 			default_backend nodes
 		backend nodes
 			timeout connect 2s
 			timeout server  10m
-		    server server1 127.0.0.1:8100 maxconn 32
-		    server server2 127.0.0.1:8101 maxconn 32''')
+			server server1 127.0.0.1:HA_BACKEND_PORT_A maxconn 32
+			server server2 127.0.0.1:HA_BACKEND_PORT_B maxconn 32''')
 	haproxydockerfile = textwrap.dedent('''\
 		FROM haproxy:1.5
 		COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg''')
@@ -1697,6 +1696,7 @@ fi''' % (skel_module_name))
 		open(phoenixsh_path, 'w').write(phoenixsh)
 		os.chmod(phoenixsh_path, os.stat(phoenixsh_path).st_mode | 0111) # chmod +x
 		open(haproxycnf_path, 'w').write(haproxycnf)
+		open(haproxycnf_path + '.template', 'w').write(haproxycnf)
 		open(haproxydockerfile_path, 'w').write(haproxydockerfile)
 
 	if skel_script is not None:
