@@ -1564,9 +1564,13 @@ def module():
 #!/bin/bash
 set -e
 DOCKER=${DOCKER:-docker}
-CONTAINER_BASE_NAME=%s
-# The port on which your haproxy is configured to receive requests
-HA_PROXY_PORT=${HA_PROXY_PORT:-8080}
+CONTAINER_BASE_NAME=${CONTAINER_BASE_NAME:-%s}
+# haproxy image suffix
+HA_PROXY_CONTAINER_SUFFIX=${HA_PROXY_CONTAINER_SUFFIX:-haproxy}
+# The port on which your haproxy image is configured to receive requests from inside
+HA_INTERNAL_PROXY_PORT=${HA_INTERNAL_PROXY_PORT:-80}
+# The port on which your haproxy image is configured to receive requests from outside
+HA_EXTERNAL_PROXY_PORT=${HA_EXTERNAL_PROXY_PORT:-8080}
 # The port on which your backend 'a' is configured to receive requests on the host
 HA_BACKEND_PORT_A=${HA_BACKEND_PORT_A:-8081}
 # The port on which your backend 'b' is configured to receive requests on the host
@@ -1579,14 +1583,14 @@ CONTAINER_PORT=${CONTAINER_PORT:-80}
 HAPROXY=$($DOCKER ps --filter=name=${CONTAINER_BASE_NAME}_haproxy -q)
 if [[ $HAPROXY = '' ]]
 then
-	HAPROXY=$($DOCKER ps --filter=name=${CONTAINER_BASE_NAME}_haproxy -q -a)
+	HAPROXY=$($DOCKER ps --filter=name=${CONTAINER_BASE_NAME}_${HA_PROXY_CONTAINER_SUFFIX} -q -a)
 	if [[ $HAPROXY != '' ]]
 	then
-		$DOCKER rm -f ${CONTAINER_BASE_NAME}_haproxy
+		$DOCKER rm -f ${CONTAINER_BASE_NAME}_${HA_PROXY_CONTAINER_SUFFIX}
 	fi
 	pushd ../haproxy
-	$DOCKER build -t ${CONTAINER_BASE_NAME}_haproxy .
-	$DOCKER run -d -p ${HA_PROXY_PORT}:80 --name ${CONTAINER_BASE_NAME}_haproxy ${CONTAINER_BASE_NAME}_haproxy
+	$DOCKER build -t ${CONTAINER_BASE_NAME}_${HA_PROXY_CONTAINER_SUFFIX} .
+	$DOCKER run -d -p ${HA_EXTERNAL_PROXY_PORT}:${HA_INTERNAL_PROXY_PORT} --name ${CONTAINER_BASE_NAME}_${HA_PROXY_CONTAINER_SUFFIX} ${CONTAINER_BASE_NAME}_${HA_PROXY_CONTAINER_SUFFIX}
 	popd
 fi
 
