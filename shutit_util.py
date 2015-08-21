@@ -1617,17 +1617,17 @@ fi
 
 # Cleanup any left-over containers, build the new one, rename the old one,
 # rename the new one, delete the old one.
-$DOCKER rm -f ${CONTAINER_BASE_NAME}_new
-$DOCKER rm -f ${CONTAINER_BASE_NAME}_old
+$DOCKER rm -f ${CONTAINER_BASE_NAME}_new > /dev/null 2>&1 || /bin/true
+$DOCKER rm -f ${CONTAINER_BASE_NAME}_old > /dev/null 2>&1 || /bin/true
 ./build.sh -s repository tag yes -s repository name ${CONTAINER_BASE_NAME}_new
 ./run.sh ${CONTAINER_BASE_NAME}_new "-p ${HA_BACKEND_PORT_B}:${CONTAINER_PORT}"
-INSTANCE=$($DOCKER ps --filter=name=${CONTAINER_BASE_NAME} -q -a)
+INSTANCE=$($DOCKER ps --filter=name=${CONTAINER_BASE_NAME}_old -q -a)
 if [[ $INSTANCE != '' ]]
 then
 	$DOCKER rename ${CONTAINER_BASE_NAME} ${CONTAINER_BASE_NAME}_old
 fi
 $DOCKER rename ${CONTAINER_BASE_NAME}_new ${CONTAINER_BASE_NAME}
-$DOCKER rm -f ${CONTAINER_BASE_NAME}_old''' % (skel_module_name))
+$DOCKER rm -f ${CONTAINER_BASE_NAME}_old > /dev/null 2>&1 || /bin/true''' % (skel_module_name))
 	pushcnf = textwrap.dedent('''\
 		###############################################################################
 		# PLEASE NOTE: This file should be changed only by the maintainer.
