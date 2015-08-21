@@ -1151,7 +1151,7 @@ def create_skeleton(shutit):
 	skel_delivery    = cfg['skeleton']['delivery']
 	# Set up dockerfile cfg
 	cfg['dockerfile']['base_image'] = skel_base_image
-	cfg['dockerfile']['cmd']        = '/bin/bash'
+	cfg['dockerfile']['cmd']        = """/bin/sh -c 'sleep infinity'"""
 	cfg['dockerfile']['user']       = ''
 	cfg['dockerfile']['maintainer'] = ''
 	cfg['dockerfile']['entrypoint'] = ''
@@ -1524,15 +1524,24 @@ def module():
 		#!/bin/bash
 		# Example for running
 		DOCKER=${DOCKER:-docker}
-		if [[ $1 != '' ]]
-		then
-			NAME=$1
-			PORT_ARG=$2
-		else
-			NAME=%s_a
-			PORT_ARG=$1
-		fi
-		${DOCKER} run -d --name ${NAME}''' % (skel_module_name,) + ports_arg + volumes_arg + env_arg + ' ${PORT_ARG} ${NAME} ' + cfg['dockerfile']['entrypoint'] + ' ' + cfg['dockerfile']['cmd'] + '\n')
+		IMAGE_NAME=%s
+		CONTAINER_NAME=$IMAGE_NAME
+		DOCKER_ARGS=''
+		while getopts "i:c:a:" opt
+		do
+			case "$opt" in
+			i)
+				IMAGE_NAME=$OPTARG
+				;;
+			c)
+				CONTAINER_NAME=$OPTARG
+				;;
+			a)
+				DOCKER_ARGS=$OPTARG
+				;;
+			esac
+		done
+		${DOCKER} run -d --name ${CONTAINER_NAME}''' % (skel_module_name,) + ports_arg + volumes_arg + env_arg + ' ${DOCKER_ARGS} ${IMAGE_NAME} ' + cfg['dockerfile']['entrypoint'] + ' ' + cfg['dockerfile']['cmd'] + '\n')
 	buildpushsh = textwrap.dedent('''\
 		export SHUTIT_OPTIONS="$SHUTIT_OPTIONS --config configs/push.cnf -s repository push yes"
 		./build.sh "$@"
@@ -1617,16 +1626,22 @@ fi
 
 # Cleanup any left-over containers, build the new one, rename the old one,
 # rename the new one, delete the old one.
-$DOCKER rm -f ${CONTAINER_BASE_NAME}_new > /dev/null 2>&1 || /bin/true
-$DOCKER rm -f ${CONTAINER_BASE_NAME}_old > /dev/null 2>&1 || /bin/true
-./build.sh -s repository tag yes -s repository name ${CONTAINER_BASE_NAME}_new
-./run.sh ${CONTAINER_BASE_NAME}_new "-p ${HA_BACKEND_PORT_B}:${CONTAINER_PORT}"
-INSTANCE=$($DOCKER ps --filter=name=${CONTAINER_BASE_NAME}_old -q -a)
-if [[ $INSTANCE != '' ]]
+./build.sh -s repository tag yes -s repository name ${CONTAINER_BASE_NAME}
+# If there's a running instance, gather the used port, and move any old container
+USED_PORT=''
+NEW_PORT=${HA_BACKEND_PORT_A}
+if [[ $($DOCKER ps --filter=name='^${CONTAINER_BASE_NAME}$' -q -a) != '' ]]
 then
+	$DOCKER rm -f ${CONTAINER_BASE_NAME}_old > /dev/null 2>&1 || /bin/true
+	USED_PORT=$($DOCKER inspect -f '{{range $p, $conf := .NetworkSettings.Ports}}{{(index $conf 0).HostPort}} {{end}}' $CONTAINER_BASE_NAME)
 	$DOCKER rename ${CONTAINER_BASE_NAME} ${CONTAINER_BASE_NAME}_old
 fi
-$DOCKER rename ${CONTAINER_BASE_NAME}_new ${CONTAINER_BASE_NAME}
+# Decide which port to use
+if [[ $USED_PORT = ${HA_BACKEND_PORT_A} ]]
+then
+	NEW_PORT=${HA_BACKEND_PORT_B}
+fi
+./run.sh -i "${CONTAINER_BASE_NAME}" -c "${CONTAINER_BASE_NAME}" -a "-p ${NEW_PORT}:${CONTAINER_PORT}"
 $DOCKER rm -f ${CONTAINER_BASE_NAME}_old > /dev/null 2>&1 || /bin/true''' % (skel_module_name))
 	pushcnf = textwrap.dedent('''\
 		###############################################################################
