@@ -1630,7 +1630,7 @@ fi
 # If there's a running instance, gather the used port, and move any old container
 USED_PORT=''
 NEW_PORT=${HA_BACKEND_PORT_A}
-if [[ $($DOCKER ps --filter=name='^${CONTAINER_BASE_NAME}$' -q -a) != '' ]]
+if [[ $($DOCKER ps --filter=name="${CONTAINER_BASE_NAME}$" -q -a) != '' ]]
 then
 	$DOCKER rm -f ${CONTAINER_BASE_NAME}_old > /dev/null 2>&1 || /bin/true
 	USED_PORT=$($DOCKER inspect -f '{{range $p, $conf := .NetworkSettings.Ports}}{{(index $conf 0).HostPort}} {{end}}' $CONTAINER_BASE_NAME)
