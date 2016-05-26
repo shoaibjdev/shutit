@@ -1143,7 +1143,6 @@ def create_skeleton():
 	skel_path        = shutit.cfg['skeleton']['path']
 	skel_module_name = shutit.cfg['skeleton']['module_name']
 	skel_domain      = shutit.cfg['skeleton']['domain']
-	# TODO: rework these
 	skel_domain_hash = shutit.cfg['skeleton']['domain_hash']
 	skel_depends     = shutit.cfg['skeleton']['depends']
 	skel_shutitfiles = shutit.cfg['skeleton']['shutitfiles']
@@ -1585,8 +1584,11 @@ def shutitfile_to_shutit_module_template(skel_shutitfile,
 			# TESTED? NO
 			local_cfg['dockerfile']['script'].append((docker_command, item[1]))
 		elif docker_command == "DEPENDS":
+<<<<<<< HEAD
 			# TESTED? NO
 			# TODO: requires at least 1?
+=======
+>>>>>>> d9f31ef4f767ddc2764e6ed2b49d91c370e82790
 			local_cfg['dockerfile']['depends'].append((docker_command, item[1]))
 		elif docker_command == "MODULE_ID":
 			# TESTED? NO
