@@ -1314,6 +1314,7 @@ def parse_shutitfile_args(args_str):
 	If the string is bounded by square brackets, then it's treated in the form: ['arg1','arg2'], and the returned list looks the same.
 	If the string composed entirely of name-value pairs (eg RUN a=b c=d) then it's returned as a dict (eg {'a':'b','c':'d'}).
 	If what's passed-in is of the form: "COMMAND ['a=b','c=d']" then a dict is also returned.'"""
+	print args_str
 	ret = []
 	if args_str[0] == '[' and args_str[-1] == ']':
 		ret = eval(args_str)
@@ -1323,7 +1324,9 @@ def parse_shutitfile_args(args_str):
 		# if all the items have a = in them, then return a dict of nv pairs
 	nv_pairs = True
 	for item in ret:
+		print item
 		if string.find(item,'=') < 0:
+			print 'FALSE!'
 			nv_pairs = False
 	if nv_pairs:
 		d = {}
@@ -2051,7 +2054,7 @@ def handle_shutitfile_line(line, numpushes, wgetgot, numlogins, ifdepth):
 				build += """\n""" + numtabs*'\t' + """shutit.send_host_file('''""" + outfile + """''', '''""" + buildstagefile + """''')"""
 	elif shutitfile_command == 'ENV':
 		shutitfile_args    = parse_shutitfile_args(line[1])
-		#assert type(shutitfile_args) == dict
+		assert type(shutitfile_args) == dict
 		for k,v in shutitfile_args.iteritems():
 			build += """\n""" + numtabs*'\t' + """shutit.send('''export """ + k + '=' + v + """''')"""
 	elif shutitfile_command == 'INSTALL':
