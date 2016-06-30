@@ -54,6 +54,7 @@ import urlparse
 import jinja2
 import pexpect
 import texttable
+import subprocess
 import shutit_global
 import shutit_main
 import shutit_skeleton
@@ -393,7 +394,7 @@ def parse_args():
 	shutit.host['real_user_id'] = pexpect.run('id -u ' + shutit.host['real_user']).strip()
 
 	# These are in order of their creation
-	actions = ['build', 'list_configs', 'list_modules', 'list_deps', 'skeleton', 'version']
+	actions = ['build', 'list_configs', 'list_modules', 'list_deps', 'run', 'skeleton', 'version']
 
 	# COMPAT 2014-05-15 - build is the default if there is no action specified
 	# and we've not asked for help and we've called via 'shutit_main.py'
@@ -402,12 +403,13 @@ def parse_args():
 		sys.argv.insert(1, 'build')
 
 	parser = argparse.ArgumentParser(description='ShutIt - a tool for managing complex Docker deployments.\n\nTo view help for a specific subcommand, type ./shutit <subcommand> -h',prog="ShutIt")
-	subparsers = parser.add_subparsers(dest='action', help='''Action to perform - build=deploy to target, skeleton=construct a skeleton module, list_configs=show configuration as read in, list_modules=show modules available, list_deps=show dep graph ready for graphviz. Defaults to 'build'.''')
-	
+	subparsers = parser.add_subparsers(dest='action', help='''Action to perform - run=compile and run a ShutItFile, build=deploy to target, skeleton=construct a skeleton module, list_configs=show configuration as read in, list_modules=show modules available, list_deps=show dep graph ready for graphviz. Defaults to 'build'.''')
 
 	sub_parsers = dict()
 	for action in actions:
 		sub_parsers[action] = subparsers.add_parser(action)
+
+	sub_parsers['run'].add_argument('shutitfile', nargs='+', help='ShutItFiles')
 
 	sub_parsers['skeleton'].add_argument('--name', help='Absolute path to new directory for module. Last part of path is taken as the module name.',default='')
 	sub_parsers['skeleton'].add_argument('--domain', help='Arbitrary but unique domain for namespacing your module, eg com.mycorp',default='')
@@ -415,7 +417,7 @@ def parse_args():
 	sub_parsers['skeleton'].add_argument('--base_image', help='FROM image, default ubuntu:14.04 (optional)', default='ubuntu:14.04')
 	sub_parsers['skeleton'].add_argument('--script', help='Pre-existing shell script to integrate into module (optional)', nargs='?', default=None)
 	sub_parsers['skeleton'].add_argument('--output_dir', help='Just output the created directory', default=False, const=True, action='store_const')
-	sub_parsers['skeleton'].add_argument('--shutitfiles', nargs='+', default=None)
+	sub_parsers['skeleton'].add_argument('--shutitfile', nargs='+', default=None)
 	sub_parsers['skeleton'].add_argument('--template_branch', help='Template branch to use', default='')
 	sub_parsers['skeleton'].add_argument('--template_repo', help='Template git repository to use', default='https://github.com/ianmiell/shutit-templates')
 	sub_parsers['skeleton'].add_argument('--delivery', help='Delivery method, aka target. "docker" container (default), configured "ssh" connection, "bash" session', default=None, choices=('docker','dockerfile','ssh','bash'))
@@ -437,9 +439,10 @@ def parse_args():
 	sub_parsers['list_modules'].add_argument('--long', help='Show extended module info, including ordering', const=True, default=False, action='store_const')
 	sub_parsers['list_modules'].add_argument('--sort', help='Order the modules seen, default to module id', default='id', choices=('id','run_order'))
 
-	for action in ['build', 'list_configs', 'list_modules', 'list_deps']:
+	for action in ['build', 'list_configs', 'list_modules', 'list_deps', 'run']:
 		sub_parsers[action].add_argument('-l','--log',default='INFO', help='Log level (DEBUG, INFO (default), WARNING, ERROR, CRITICAL)',choices=('DEBUG','INFO','WARNING','ERROR','CRITICAL','debug','info','warning','error','critical'))
 		sub_parsers[action].add_argument('-o','--logfile',default='', help='Log output to this file')
+	for action in ['build', 'list_configs', 'list_modules', 'list_deps']:
 		sub_parsers[action].add_argument('--config', help='Config file for setup config. Must be with perms 0600. Multiple arguments allowed; config files considered in order.', default=[], action='append')
 		sub_parsers[action].add_argument('-d','--delivery', help='Delivery method, aka target. "docker" container (default), configured "ssh" connection, "bash" session', default=None, choices=('docker','dockerfile','ssh','bash'))
 		sub_parsers[action].add_argument('-s', '--set', help='Override a config item, e.g. "-s target rm no". Can be specified multiple times.', default=[], action='append', nargs=3, metavar=('SEC', 'KEY', 'VAL'))
@@ -492,13 +495,30 @@ def parse_args():
 	shutit.action['list_deps']    = args.action == 'list_deps'
 	shutit.action['skeleton']     = args.action == 'skeleton'
 	shutit.action['build']        = args.action == 'build'
+	shutit.action['run']          = args.action == 'run'
 	# Logging
 	shutit.host['logfile']   = args.logfile
 	shutit.build['loglevel'] = args.log
 	setup_logging()
 
+	# If we are running a shutitfile, then 
+	if shutit.action['run']:
+		# TODO
+		command = shutit.host['calling_path'] + '/shutit skeleton'
+		# Check there's a file and that it exists
+		for filename in args.shutitfile:
+			command += ' --shutitfile ' + filename
+		command += ' -a'
+		print command
+		# Run shutit skeleton command and in turn run its output
+		command = command + ' > /tmp/script && chmod +x /tmp/script'
+		r = subprocess.Popen(command,shell=True)
+		print r
+		sys.exit(0)
+		# exit
+		pass
 	# This mode is a bit special - it's the only one with different arguments
-	if shutit.action['skeleton']:
+	elif shutit.action['skeleton']:
 		delivery_method = args.delivery
 		accept_defaults = args.accept
 		# Looks through the arguments given for valid shutitfiles, and adds their names to _new_shutitfiles.
