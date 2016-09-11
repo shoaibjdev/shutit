@@ -63,6 +63,7 @@ from shutit_module import ShutItFailException
 from shutit_module import ShutItModule
 from builtins import input
 
+PY3 = (sys.version_info[0] >= 3)
 
 allowed_delivery_methods = ['ssh','dockerfile','bash','docker']
 
@@ -680,7 +681,10 @@ shutitfile:        a shutitfile-based project
 			os.mkdir(shutit_home, 0o700)
 		if not os.path.isfile(os.path.join(shutit_home, 'config')):
 			f = os.open(os.path.join(shutit_home, 'config'), os.O_WRONLY | os.O_CREAT, 0o600)
-			os.write(f,_default_cnf)
+			if PY3:
+				os.write(f,bytes(_default_cnf))
+			else:
+				os.write(f,_default_cnf)
 			os.close(f)
 
 		# Default this to False as it's not always set (mostly for debug logging).
