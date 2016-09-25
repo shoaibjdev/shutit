@@ -1909,13 +1909,13 @@ class ShutItPexpectSession(object):
 							if not before and ftext[cut_point:].find(text) > 0:
 								return None
 					if PY3:
-						if len(newtext1) > 0 and newtext1[-1] != bytes('\n','utf-8'):
+						if len(newtext1) > 0 and bytes(newtext1.decode('utf-8')[-1],'utf-8') != bytes('\n','utf-8'):
 							newtext1 += bytes('\n','utf-8')
 					else:
 						if len(newtext1) > 0 and newtext1[-1] != '\n':
 							newtext1 += '\n'
 					if PY3:
-						if len(newtext2) > 0 and newtext2[0] != bytes('\n','utf-8'):
+						if len(newtext2) > 0 and bytes(newtext2.decode('utf-8')[0],'utf-8') != bytes('\n','utf-8'):
 							newtext2 = bytes('\n','utf-8') + newtext2
 					else:
 						if len(newtext2) > 0 and newtext2[0] != '\n':
