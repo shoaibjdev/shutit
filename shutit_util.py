@@ -977,7 +977,7 @@ def print_config(cfg, hide_password=True, history=False, module_id=None):
 	"""
 	cp = shutit_global.shutit.config_parser
 	s = ''
-	keys1 = cfg.keys()
+	keys1 = list(cfg.keys())
 	if keys1:
 		keys1.sort()
 	for k in keys1:
@@ -985,7 +985,7 @@ def print_config(cfg, hide_password=True, history=False, module_id=None):
 			continue
 		if type(k) == str and type(cfg[k]) == dict:
 			s += '\n[' + k + ']\n'
-			keys2 = cfg[k].keys()
+			keys2 = list(cfg[k].keys())
 			if keys2:
 				keys2.sort()
 			for k1 in keys2:
@@ -1339,7 +1339,7 @@ def module_ids(rev=False):
 	(run order < 0).
 	"""
 	shutit = shutit_global.shutit
-	ids = sorted(shutit.shutit_map.keys(),key=lambda module_id: shutit.shutit_map[module_id].run_order)
+	ids = sorted(list(shutit.shutit_map.keys()),key=lambda module_id: shutit.shutit_map[module_id].run_order)
 	if rev:
 		return list(reversed(ids))
 	else:
