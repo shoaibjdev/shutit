@@ -1931,7 +1931,7 @@ class ShutItPexpectSession(object):
 				newtext2 = ftext[cut_point:]
 			# If adding or replacing at the end of the file, then ensure we have a newline at the end
 			if PY3:
-				if newtext2 == '' and len(text) > 0 and bytes(text.decode('utf-8')[-1],'utf-8') != bytes('\n','utf-8'):
+				if newtext2 == b'' and len(text) > 0 and bytes(text.decode('utf-8')[-1],'utf-8') != bytes('\n','utf-8'):
 					newtext2 = bytes('\n','utf-8')
 			else:
 				if newtext2 == '' and len(text) > 0 and text[-1] != '\n':
