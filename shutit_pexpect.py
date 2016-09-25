@@ -1891,8 +1891,11 @@ class ShutItPexpectSession(object):
 						cut_point = len(ftext)
 					elif not replace and not before:
 						cut_point += line_length
+					# newtext1 is everything up to the cutpoint
 					newtext1 = ftext[:cut_point]
+					# newtext2 is everything after the cutpoint
 					newtext2 = ftext[cut_point:]
+					# if replacing and we matched the output in a line, then set newtext2 to be everything from cutpoint's line end
 					if replace and matched:
 						newtext2 = ftext[cut_point+line_length:]
 					elif not force:
@@ -1900,7 +1903,6 @@ class ShutItPexpectSession(object):
 						if PY3:
 							if before and ftext[cut_point-len(text):].find(bytes(text,'utf-8')) > 0:
 								return None
-							# If the text is already there and we're not forcing it, return None.
 							if not before and ftext[cut_point:].find(bytes(text,'utf-8')) > 0:
 								return None
 						else:
@@ -1908,12 +1910,14 @@ class ShutItPexpectSession(object):
 								return None
 							if not before and ftext[cut_point:].find(text) > 0:
 								return None
+					# Add a newline to newtext1 if it is not already there
 					if PY3:
 						if len(newtext1) > 0 and bytes(newtext1.decode('utf-8')[-1],'utf-8') != bytes('\n','utf-8'):
 							newtext1 += bytes('\n','utf-8')
 					else:
 						if len(newtext1) > 0 and newtext1[-1] != '\n':
 							newtext1 += '\n'
+					# Add a newline to newtext2 if it is not already there
 					if PY3:
 						if len(newtext2) > 0 and bytes(newtext2.decode('utf-8')[0],'utf-8') != bytes('\n','utf-8'):
 							newtext2 = bytes('\n','utf-8') + newtext2
@@ -1927,7 +1931,7 @@ class ShutItPexpectSession(object):
 				newtext2 = ftext[cut_point:]
 			# If adding or replacing at the end of the file, then ensure we have a newline at the end
 			if PY3:
-				if newtext2 == '' and len(text) > 0 and bytes(text[-1],'utf-8') != bytes('\n','utf-8'):
+				if newtext2 == '' and len(text) > 0 and bytes(text.decode('utf-8')[-1],'utf-8') != bytes('\n','utf-8'):
 					newtext2 = bytes('\n','utf-8')
 			else:
 				if newtext2 == '' and len(text) > 0 and text[-1] != '\n':
