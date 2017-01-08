@@ -2274,11 +2274,11 @@ $'"""
 					shutit.log('Output (squashed): ' + logged_output,level=logging.DEBUG)
 				else:
 					shutit.log('Output (squashed): ' + logged_output,level=loglevel)
-				shutit.log('shutit_pexpect_child.buffer(hex)>>>\n' + codecs.encode(str(self.pexpect_child.buffer),'hex') + '\n<<<',level=logging.DEBUG)
+				shutit.log('shutit_pexpect_child.buffer(hex)>>>\n' + codecs.encode(buffer(str(self.pexpect_child.buffer)),'hex') + '\n<<<',level=logging.DEBUG)
 				shutit.log('shutit_pexpect_child.buffer>>>\n' + str(self.pexpect_child.buffer) + '\n<<<',level=logging.DEBUG)
-				shutit.log('shutit_pexpect_child.before (hex)>>>\n' + codecs.encode(str(self.pexpect_child.before),'hex') + '\n<<<',level=logging.DEBUG)
+				shutit.log('shutit_pexpect_child.before (hex)>>>\n' + codecs.encode(buffer(str(self.pexpect_child.before)),'hex') + '\n<<<',level=logging.DEBUG)
 				shutit.log('shutit_pexpect_child.before>>>\n' + str(self.pexpect_child.before) + '\n<<<',level=logging.DEBUG)
-				shutit.log('shutit_pexpect_child.after (hex)>>>\n' + codecs.encode(str(self.pexpect_child.after),'hex') + '\n<<<',level=logging.DEBUG)
+				shutit.log('shutit_pexpect_child.after (hex)>>>\n' + codecs.encode(buffer(str(self.pexpect_child.after)),'hex') + '\n<<<',level=logging.DEBUG)
 				shutit.log('shutit_pexpect_child.after>>>\n' + str(self.pexpect_child.after) + '\n<<<',level=logging.DEBUG)
 			else:
 				shutit.log('[Send was marked secret; getting output debug will require code change]',level=logging.DEBUG)
