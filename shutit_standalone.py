@@ -1,6 +1,7 @@
 import shutit_global
 import shutit_pexpect
 import shutit_util
+import shutit_main
 
 
 # POC of shutit_standalone functionality.
@@ -24,3 +25,18 @@ def create_bash_session():
 	shutit_pexpect_session.setup_prompt(prefix,prefix=prefix)                                                                                         
 	shutit_pexpect_session.login_stack_append(prefix)     
 	return shutit
+
+
+
+def create_docker_session():
+	shutit = shutit_global.shutit
+	# TODO: create temporary file
+	shutit_util.parse_args()
+	shutit_util.load_configs()
+	shutit_main.conn_target(shutit)
+
+
+if __name__ == '__main__':
+	shutit = create_bash_session()
+	shutit.send('ls')
+	create_docker_session()
