@@ -56,7 +56,15 @@ class ShutItConnModule(ShutItModule):
 
 	def setup_target_child(self, target_child, target_child_id='target_child',prefix='root'):
 		shutit = shutit_global.shutit
-		setup_target_environment(shutit, target_child, target_child_id='target_child',prefix='root')
+		# Some pexpect settings
+		shutit_pexpect_session = shutit.get_shutit_pexpect_session_from_id(target_child_id)
+		shutit_pexpect_session.pexpect_child = target_child
+		shutit.set_default_shutit_pexpect_session_expect(shutit.expect_prompts['base_prompt'])
+		# target child
+		shutit.set_default_shutit_pexpect_session(shutit_pexpect_session)
+		shutit_pexpect_session.setup_prompt(prefix,prefix=prefix)
+		shutit_pexpect_session.login_stack_append(prefix)
+
 
 
 class ConnDocker(ShutItConnModule):
@@ -388,7 +396,6 @@ def conn_docker_build(conn_docker, shutit, loglevel=logging.DEBUG):
 	shutit.send('chmod -R 777 ' + shutit.build['shutit_state_dir'] + ' && mkdir -p ' + shutit.build['build_db_dir'] + '/' + shutit.build['build_id'], shutit_pexpect_child=target_child, echo=False, loglevel=loglevel)
 	return True
 
-
 def conn_docker_finalize(shutit):
 	# Finish with the target
 	shutit.get_shutit_pexpect_session_from_id('target_child').sendline('exit')
@@ -403,6 +410,7 @@ def conn_docker_finalize(shutit):
 	return True
 
 
+
 def setup_origin_environment(shutit):
 	shutit.log('Spawning host child',level=logging.DEBUG)
 	shutit_pexpect_session = shutit_pexpect.ShutItPexpectSession('target_child','/bin/bash')
@@ -414,12 +422,12 @@ def setup_origin_environment(shutit):
 	shutit_pexpect_session.login_stack_append(prefix)
 
 
-def setup_target_environment(shutit, target_child, target_child_id='target_child',prefix='root'):
-	# Some pexpect settings
-	shutit_pexpect_session = shutit.get_shutit_pexpect_session_from_id(target_child_id)
-	shutit_pexpect_session.pexpect_child = target_child
-	shutit.set_default_shutit_pexpect_session_expect(shutit.expect_prompts['base_prompt'])
-	# target child
-	shutit.set_default_shutit_pexpect_session(shutit_pexpect_session)
-	shutit_pexpect_session.setup_prompt(prefix,prefix=prefix)
-	shutit_pexpect_session.login_stack_append(prefix)
+
+def setup_target_environment(shutit, prefix='root'):
+    target_child = shutit_setup.conn_docker_start_container(shutit,'ORIGIN')
+    shutit_pexpect_session = shutit.get_shutit_pexpect_session_from_id('target_child')
+    shutit_pexpect_session.pexpect_child = target_child
+    shutit.set_default_shutit_pexpect_session_expect(shutit.expect_prompts['base_prompt'])
+    shutit.set_default_shutit_pexpect_session(shutit_pexpect_session)
+    shutit_pexpect_session.setup_prompt(prefix,prefix=prefix)
+    shutit_pexpect_session.login_stack_append(prefix)
