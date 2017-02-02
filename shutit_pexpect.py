@@ -1110,7 +1110,8 @@ class ShutItPexpectSession(object):
 		if note != None:
 			shutit.handle_note('Installing package: ' + package + '\n' + note)
 		shutit.log('Installing package: ' + package,level=loglevel)
-		if options is None: options = {}
+		if options is None:
+			options = {}
 		install_type = self.current_environment.install_type
 		if install_type == 'src':
 			# If this is a src build, we assume it's already installed.
@@ -1184,9 +1185,17 @@ class ShutItPexpectSession(object):
 				if pw != '':
 					cmd = 'sudo ' + cmd
 					res = self.multisend('%s %s %s' % (cmd, opts, package), {'assword':pw}, expect=['Unable to fetch some archives',self.default_expect], timeout=timeout, check_exit=False, loglevel=loglevel, echo=False, secret=True)
+					# Sometimes we see installs (eg yum) reset the terminal to a state
+					# ShutIt does not like.
+					# reset terminal, as installing sometimes causes terminal reset issues
+					self.reset_terminal() 
 					shutit.log('Result of install attempt was: ' + str(res),level=logging.DEBUG)
 				else:
 					res = self.send('%s %s %s' % (cmd, opts, package), expect=['Unable to fetch some archives',self.default_expect], timeout=timeout, check_exit=False, loglevel=loglevel)
+					# Sometimes we see installs (eg yum) reset the terminal to a state
+					# ShutIt does not like.
+					# reset terminal, as installing sometimes causes terminal reset issues
+					self.reset_terminal()
 					shutit.log('Result of install attempt was: ' + str(res),level=logging.DEBUG)
 				if self.get_exit_value(shutit):
 					break
@@ -1200,9 +1209,6 @@ class ShutItPexpectSession(object):
 			shutit.log('Package not required.',level=logging.DEBUG)
 
 		shutit.log('Package is installed.',level=logging.DEBUG)
-		# Sometimes we see installs (eg yum) reset the terminal to a state
-		# ShutIt does not like.
-		self.reset_terminal()
 		shutit.handle_note_after(note=note)
 		return True
 
