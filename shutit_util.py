@@ -258,7 +258,8 @@ def setup_logging(shutit):
 	if isinstance(shutit.build['loglevel'], int):
 		return
 	logformat='%(asctime)s %(levelname)s: %(message)s'
-	logging.addLevelName(5, 'FORENSIC')
+	FORENSIC = 5
+	logging.addLevelName(FORENSIC, 'FORENSIC')
 	if shutit.host['logfile'] == '':
 		if not os.access(shutit.build['shutit_state_dir_base'],os.F_OK):
 			os.mkdir(shutit.build['shutit_state_dir_base'])
@@ -278,7 +279,7 @@ def setup_logging(shutit):
 		elif shutit.build['loglevel'] == 'INFO':
 			logging.basicConfig(format=logformat,level=logging.INFO)
 		elif shutit.build['loglevel'] == 'FORENSIC':
-			logging.basicConfig(format=logformat,filename=shutit.host['logfile'],level=logging.FORENSIC)
+			logging.basicConfig(format=logformat,level=logging.FORENSIC)
 		else:
 			logging.basicConfig(format=logformat,level=logging.INFO)
 	else:
@@ -298,6 +299,11 @@ def setup_logging(shutit):
 		else:
 			logging.basicConfig(format=logformat,filename=shutit.host['logfile'],level=logging.INFO)
 
+	def forensic(self, message, *args, **kws):
+		if self.isEnabledFor(FORENSIC):
+			self._log(forensic, message, args, **kws) 
+	logging.Logger.forensic = forensic
+	logging.Logger.forensic(logging.getLogger(),'asd')
 	shutit.build['loglevel'] = logging.getLogger().getEffectiveLevel()
 
 
