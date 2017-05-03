@@ -258,8 +258,8 @@ def setup_logging(shutit):
 	if isinstance(shutit.build['loglevel'], int):
 		return
 	logformat='%(asctime)s %(levelname)s: %(message)s'
-	FORENSIC = 5
-	logging.addLevelName(FORENSIC, 'FORENSIC')
+	logging.FORENSIC = 5
+	logging.addLevelName(logging.FORENSIC, 'FORENSIC')
 	if shutit.host['logfile'] == '':
 		if not os.access(shutit.build['shutit_state_dir_base'],os.F_OK):
 			os.mkdir(shutit.build['shutit_state_dir_base'])
@@ -300,10 +300,12 @@ def setup_logging(shutit):
 			logging.basicConfig(format=logformat,filename=shutit.host['logfile'],level=logging.INFO)
 
 	def forensic(self, message, *args, **kws):
-		if self.isEnabledFor(FORENSIC):
+		if self.isEnabledFor(logging.FORENSIC):
 			self._log(forensic, message, args, **kws) 
+		else:
+			self._log(logging.DEBUG, message, args **kws)
 	logging.Logger.forensic = forensic
-	logging.Logger.forensic(logging.getLogger(),'asd')
+
 	shutit.build['loglevel'] = logging.getLogger().getEffectiveLevel()
 
 
@@ -461,7 +463,7 @@ def parse_args(shutit, set_loglevel=None):
 
 	for action in ['build', 'list_configs', 'list_modules', 'list_deps','run']:
 		sub_parsers[action].add_argument('-o','--logfile',default='', help='Log output to this file')
-		sub_parsers[action].add_argument('-l','--log',default='', help='Log level (DEBUG, INFO (default), WARNING, ERROR, CRITICAL)',choices=('DEBUG','INFO','WARNING','ERROR','CRITICAL','debug','info','warning','error','critical'))
+		sub_parsers[action].add_argument('-l','--log',default='', help='Log level (FORENSIC, DEBUG, INFO (default), WARNING, ERROR, CRITICAL)',choices=('FORENSIC','DEBUG','INFO','WARNING','ERROR','CRITICAL','forensic','debug','info','warning','error','critical'))
 		if action != 'run':
 			sub_parsers[action].add_argument('-d','--delivery', help='Delivery method, aka target. "docker" container (default), configured "ssh" connection, "bash" session', default=None, choices=('docker','dockerfile','ssh','bash'))
 			sub_parsers[action].add_argument('--config', help='Config file for setup config. Must be with perms 0600. Multiple arguments allowed; config files considered in order.', default=[], action='append')
@@ -707,6 +709,7 @@ shutitfile:        a shutitfile-based project (can be docker, bash, vagrant)
 		argv_new = [sys.argv[0],'skeleton','--shutitfile'] + args.shutitfiles + ['--name', module_dir,'--domain',module_domain,'--pattern','bash']
 		retdir = os.getcwd()
 		subprocess.call(argv_new)
+		# TODO: if there are no ShutItFiles to process, this fails.
 		os.chdir(module_dir)
 		subprocess.call('./run.sh')
 		os.chdir(retdir)
@@ -1602,8 +1605,12 @@ def handle_exit(shutit=None, exit_code=0,loglevel=logging.DEBUG,msg=None):
 			print('Resetting terminal')
 	else:
 		if exit_code != 0:
-			shutit.log('Exiting with error code: ' + str(exit_code),level=loglevel)
-			shutit.log('Resetting terminal',level=loglevel)
+			if isinstance(shutit.build['loglevel'], int):
+				shutit.log('Exiting with error code: ' + str(exit_code),level=loglevel)
+				shutit.log('Resetting terminal',level=loglevel)
+			else:
+				print('Exiting with error code: ' + str(exit_code))
+				print('Resetting terminal')
 	sanitize_terminal()
 	sys.exit(exit_code)
 
@@ -1613,6 +1620,7 @@ def sendline(child,
 	"""Handles sending of line to pexpect object.
 	"""
 	child.sendline(line)
+
 
 def sanitize_terminal():
 	os.system('stty sane')
