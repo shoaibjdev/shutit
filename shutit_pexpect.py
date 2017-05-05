@@ -1249,7 +1249,7 @@ class ShutItPexpectSession(object):
 				opts = options['apt']
 			else:
 				opts = '-y'
-				if shutit.build['loglevel'] > logging.DEBUG:
+				if shutit_global.shutit_global_object.loglevel > logging.DEBUG:
 					opts += ' -qq'
 				if force:
 					opts += ' --force-yes'
@@ -1261,7 +1261,7 @@ class ShutItPexpectSession(object):
 			if 'yum' in options:
 				opts = options['yum']
 			else:
-				if shutit.build['loglevel'] > logging.DEBUG:
+				if shutit_global.shutit_global_object.loglevel > logging.DEBUG:
 					opts += ' -q'
 				opts += ' -y'
 			if reinstall:
@@ -3448,7 +3448,7 @@ $'"""
 			# CTRL-p - used as part of CTRL-p - CTRL-q
 			elif ord(input_string) == 16:
 				shutit.shutit_signal['ID'] = 16
-				if shutit.build['exam'] and shutit.build['loglevel'] not in ('DEBUG','INFO'):
+				if shutit.build['exam'] and shutit_global.shutit_global_object.loglevel not in ('DEBUG','INFO'):
 					return ''
 				else:
 					return '\x10'
