@@ -57,6 +57,7 @@ class ShutItGlobal(object):
 
 		self.secret_words_set = set()
 		self.logfile          = None
+		self.shutit_signal_id = None
 
 
 	def add_shutit_session(self, shutit):
